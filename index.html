@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>Creador de liquidaciones</title>
+<style>
+:root{
+  --bg:#f4f6fa;--surface:#fff;--ink:#172033;--muted:#69758a;--line:#e4e9f1;
+  --navy:#101827;--navy2:#1b2940;--accent:#315efb;--accent2:#2449d8;
+  --green:#137a54;--green-bg:#e9f8f0;--red:#b42335;--red-bg:#fff0f1;
+  --amber:#946200;--amber-bg:#fff7df;--shadow:0 12px 32px rgba(20,32,54,.06);
+  --radius:18px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.app-shell{min-height:100vh;display:grid;grid-template-columns:244px minmax(0,1fr)}
+.sidebar{background:var(--navy);color:#fff;padding:28px 18px;display:flex;flex-direction:column;gap:28px}
+.brand{display:flex;gap:12px;align-items:center;padding:0 7px}
+.brand-mark{width:40px;height:40px;border-radius:13px;background:linear-gradient(145deg,#5f7dff,#315efb);display:grid;place-items:center;box-shadow:0 7px 18px #315efb44}
+.brand-mark svg{width:23px;height:23px}
+.brand-name{font-size:15px;font-weight:750;letter-spacing:-.35px}
+.brand-sub{font-size:11px;color:#9aa8bf;margin-top:2px}
+.nav-label{font-size:10px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:#7f8da4;padding:0 11px;margin-bottom:8px}
+.nav-item{display:flex;align-items:center;gap:11px;padding:11px 12px;color:#c4cede;border-radius:11px;font-weight:600;margin:3px 0}
+.nav-item.active{background:#26344d;color:white;box-shadow:inset 3px 0 #7790ff}
+.nav-item svg{width:18px;height:18px;opacity:.92}
+.sidebar-bottom{margin-top:auto;border:1px solid #2a374d;border-radius:14px;padding:14px;color:#c4cede;font-size:12px}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ed49a;margin-right:7px}
+.main{min-width:0}
+.topbar{height:74px;background:#ffffffd9;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 clamp(20px,4vw,48px);gap:16px}
+.breadcrumb{color:var(--muted);font-size:12px}.breadcrumb strong{color:var(--ink);font-weight:650}
+.top-right{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px}
+.avatar{width:32px;height:32px;display:grid;place-items:center;border-radius:10px;background:#e9edff;color:#315efb;font-weight:800}
+.content{max-width:1380px;margin:auto;padding:34px clamp(20px,4vw,48px) 54px}
+.page-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:25px}
+.eyebrow{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;font-weight:800;color:var(--accent);margin-bottom:8px}
+h1{font-size:clamp(26px,3vw,34px);line-height:1.14;letter-spacing:-1.2px;margin:0;font-weight:780}
+.subtitle{color:var(--muted);margin:10px 0 0;max-width:650px;font-size:14px}
+.heading-tag{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:9px 12px;color:#4f5d72;font-size:12px;font-weight:650;white-space:nowrap}
+.heading-tag svg{width:15px;height:15px;color:var(--green)}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:22px}
+.metric{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:17px 18px;box-shadow:0 3px 10px #17203303}
+.metric-label{font-size:12px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
+.metric-icon{width:28px;height:28px;border-radius:9px;background:#eef2ff;color:var(--accent);display:grid;place-items:center}
+.metric-icon svg{width:15px;height:15px}
+.metric-value{font-size:24px;letter-spacing:-.8px;font-weight:760;margin-top:10px;font-variant-numeric:tabular-nums}
+.metric-note{font-size:11px;color:var(--muted);margin-top:3px}
+.layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(290px,.8fr);gap:20px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);min-width:0;overflow:hidden}
+.panel-head{padding:21px 23px 17px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.panel-title{font-size:15px;font-weight:760;letter-spacing:-.2px}
+.panel-desc{font-size:12px;color:var(--muted);margin-top:4px}
+.step{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:#eef2ff;color:var(--accent);font-weight:800;font-size:12px;flex-shrink:0}
+.panel-body{padding:22px 23px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.field.full{grid-column:1/-1}
+label{font-size:12px;font-weight:700;color:#46536a}
+input,select,textarea{width:100%;border:1px solid #dbe2ec;border-radius:10px;background:#fff;color:var(--ink);padding:11px 12px;outline:none;transition:border .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{border-color:#7892ff;box-shadow:0 0 0 3px #315efb18}
+input::placeholder,textarea::placeholder{color:#a2abba}
+.helper{font-size:11px;color:var(--muted)}
+.segmented{display:flex;gap:5px;padding:4px;border-radius:12px;background:#f0f3f8}
+.segmented button{flex:1;border:0;background:transparent;border-radius:9px;padding:10px 8px;font-weight:700;color:#69758a;font-size:12px}
+.segmented button.active{background:white;color:var(--accent);box-shadow:0 2px 5px #18233a12}
+.section-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:25px 0 12px}
+.section-row h3{font-size:13px;margin:0;font-weight:760}
+.count{font-size:11px;color:var(--muted);background:#f2f4f8;border-radius:7px;padding:4px 7px}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:470px}
+th{background:#f8f9fc;color:#69758a;text-align:left;font-size:10px;letter-spacing:.7px;text-transform:uppercase;font-weight:800;padding:11px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #edf0f5}
+tbody tr:last-child td{border-bottom:0}
+td input{padding:9px 10px;border-color:transparent;background:transparent;border-radius:7px;min-width:0}
+td input:hover{background:#f8faff}
+td input:focus{background:white;border-color:#9badff;box-shadow:0 0 0 2px #315efb13}
+td.amount input{width:112px;text-align:right;font-variant-numeric:tabular-nums}
+td.invoice input{min-width:130px}
+td.remove{width:40px}
+.icon-btn{width:30px;height:30px;border:0;background:transparent;color:#8a95a8;border-radius:8px;display:grid;place-items:center}
+.icon-btn:hover{background:var(--red-bg);color:var(--red)}
+.icon-btn svg{width:16px;height:16px}
+.add-row{display:flex;align-items:center;gap:7px;border:1px dashed #c9d3e2;background:#fbfcff;color:#53637d;padding:10px 12px;border-radius:10px;width:100%;justify-content:center;font-weight:700;font-size:12px;margin-top:10px}
+.add-row:hover{border-color:#8da1ff;color:var(--accent);background:#f7f8ff}
+.add-row svg{width:16px;height:16px}
+.import-box{margin-top:16px;background:#f8faff;border:1px solid #e5eaf5;border-radius:12px;padding:14px}
+.import-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.import-title{font-size:12px;font-weight:750}
+.text-btn{border:0;background:none;color:var(--accent);font-size:11px;font-weight:750;padding:4px}
+textarea{resize:vertical;min-height:78px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:1.5}
+.import-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px}
+.import-actions .helper{max-width:250px}
+.btn{border:1px solid transparent;border-radius:10px;padding:11px 14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:750;font-size:12px;transition:transform .12s,background .12s;white-space:nowrap}
+.btn:active{transform:translateY(1px)}
+.btn svg{width:16px;height:16px}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 5px 12px #315efb28}
+.btn-primary:hover{background:var(--accent2)}
+.btn-secondary{background:#fff;border-color:#dce3ed;color:#45536b}
+.btn-secondary:hover{background:#f8faff}
+.btn-quiet{background:transparent;color:#69758a}
+.btn-quiet:hover{background:#f1f3f8;color:var(--ink)}
+.full-btn{width:100%}
+.summary-body{padding:21px}
+.summary-title{font-size:14px;font-weight:780;margin:0}
+.summary-sub{font-size:12px;color:var(--muted);margin:5px 0 18px}
+.summary-line{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid #edf0f5;font-size:12px}
+.summary-line span:first-child{color:#66738a}
+.summary-line strong{font-size:13px;font-weight:750;font-variant-numeric:tabular-nums}
+.summary-line.total{border-bottom:0;border-top:1px solid var(--line);margin-top:6px;padding-top:16px}
+.summary-line.total strong{font-size:17px}
+.balance{margin:17px 0 18px;border-radius:12px;padding:13px;display:flex;align-items:center;gap:10px;background:var(--green-bg);color:var(--green)}
+.balance.invalid{background:var(--red-bg);color:var(--red)}
+.balance svg{width:20px;height:20px;flex-shrink:0}
+.balance strong{display:block;font-size:12px}
+.balance span{display:block;font-size:11px;opacity:.85;margin-top:2px}
+.rule-note{display:flex;gap:9px;background:#f7f8fb;border:1px solid #e9edf4;padding:12px;border-radius:11px;color:#637087;font-size:11px;margin:15px 0 18px}
+.rule-note svg{width:16px;height:16px;flex-shrink:0;color:#7b8aa5}
+.summary-actions{display:grid;gap:9px}
+.validation-list{display:grid;gap:8px;margin-top:16px}
+.validation-item{display:flex;align-items:flex-start;gap:8px;color:#66738a;font-size:11px}
+.validation-item svg{width:15px;height:15px;flex-shrink:0;margin-top:1px;color:var(--green)}
+.validation-item.warn svg{color:var(--amber)}
+.footer{display:flex;justify-content:space-between;gap:16px;color:#929caf;font-size:11px;margin-top:22px;padding:0 3px}
+.toast{position:fixed;right:22px;bottom:22px;z-index:10;background:#172033;color:white;border-radius:12px;padding:13px 16px;box-shadow:0 12px 30px #10182733;display:flex;align-items:center;gap:10px;max-width:min(430px,calc(100vw - 32px));opacity:0;transform:translateY(12px);pointer-events:none;transition:all .2s;font-size:12px}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast svg{width:18px;height:18px;flex-shrink:0}
+.modal-backdrop{position:fixed;inset:0;background:#10182770;display:none;align-items:center;justify-content:center;padding:20px;z-index:20}
+.modal-backdrop.show{display:flex}
+.modal{background:white;border-radius:18px;max-width:620px;width:100%;padding:24px;box-shadow:0 30px 80px #10182740}
+.modal-head{display:flex;justify-content:space-between;align-items:center;gap:15px}
+.modal h2{font-size:18px;margin:0}
+.preview-scroll{overflow:auto;max-height:48vh;margin:18px 0;border:1px solid var(--line);border-radius:10px}
+.preview-scroll table{min-width:680px;font-size:11px}
+.preview-scroll td,.preview-scroll th{padding:9px}
+.modal-foot{display:flex;justify-content:flex-end;gap:9px}
+.mobile-menu{display:none}
+@media(max-width:1100px){.app-shell{grid-template-columns:210px minmax(0,1fr)}.layout{grid-template-columns:minmax(0,1fr)}.summary-panel{display:grid;grid-template-columns:1fr 1fr}.summary-panel .panel-head{grid-column:1/-1}.summary-body{padding:18px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.app-shell{display:block}.sidebar{display:none}.topbar{height:62px;padding:0 18px}.mobile-menu{display:grid;place-items:center;border:1px solid var(--line);background:white;border-radius:9px;width:34px;height:34px}.topbar{justify-content:flex-start}.top-right{margin-left:auto}.content{padding:25px 15px 38px}.page-heading{display:block}.heading-tag{margin-top:17px}.metrics{gap:9px}.metric{padding:13px}.metric-value{font-size:20px}.metric-label{font-size:11px}.layout{gap:14px}.panel-head{padding:17px}.panel-body{padding:17px}.summary-panel{display:block}.summary-panel .panel-head{grid-column:auto}.summary-body{padding:18px}.fields{gap:12px}.footer{flex-direction:column}.top-right .top-context{display:none}}
+@media(max-width:420px){.fields{grid-template-columns:1fr}.field.full{grid-column:auto}.metrics{grid-template-columns:1fr 1fr}.metric-value{font-size:18px}.heading-tag{font-size:11px}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z"/><path d="m8 12 2.5 2.5L16.5 8.5"/></svg>
+      </div>
+      <div><div class="brand-name">Creador de liquidaciones</div><div class="brand-sub">Herramientas de contabilidad</div></div>
+    </div>
+    <div>
+      <div class="nav-label">Espacio de trabajo</div>
+      <div class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 9h8M8 13h4M8 17h8"/></svg>
+        Crear liquidación
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+        Exportación CSV
+      </div>
+    </div>
+    <div class="sidebar-bottom">
+      <div style="font-weight:750;color:#fff;margin-bottom:6px"><span class="status-dot"></span>Procesamiento local</div>
+      Los datos se procesan en este navegador. No se envían a un servidor.
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="mobile-menu" type="button" aria-label="Menú">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div class="breadcrumb">Contabilidad <span style="padding:0 7px;color:#aab3c1">/</span> <strong>Crear liquidación</strong></div>
+      <div class="top-right"><span class="top-context">Generador de Journal Entries</span><div class="avatar">CL</div></div>
+    </header>
+
+    <div class="content">
+      <div class="page-heading">
+        <div>
+          <div class="eyebrow">Operaciones financieras</div>
+          <h1>Creador de liquidaciones</h1>
+          <p class="subtitle">Prepara, valida y exporta Journal Entries para QuickBooks en un solo flujo. Menos trabajo manual, más control contable.</p>
+        </div>
+        <div class="heading-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>
+          Generación local · Sin conexión a QuickBooks
+        </div>
+      </div>
+
+      <section class="metrics" aria-label="Resumen de la liquidación">
+        <div class="metric">
+          <div class="metric-label"><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h8"/></svg></span>Invoices</div>
+          <div class="metric-value" id="metricInvoices">0</div>
+          <div class="metric-note">Cargas registradas</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label"><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg></span>Valor original</div>
+          <div class="metric-value" id="metricOriginal">$0.00</div>
+          <div class="metric-note">Suma de las cargas</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label"><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span>Crédito adicional</div>
+          <div class="metric-value" id="metricExtra">$1.00</div>
+          <div class="metric-note">Aplicado una sola vez</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label"><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>Total del asiento</div>
+          <div class="metric-value" id="metricTotal">$0.00</div>
+          <div class="metric-note">Débitos y créditos</div>
+        </div>
+      </section>
+
+      <div class="layout">
+        <section class="panel">
+          <div class="panel-head">
+            <div><div class="panel-title">Configuración del Journal Entry</div><div class="panel-desc">Define el tipo de operación y registra las cargas.</div></div>
+            <div class="step">01</div>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label>Tipo de liquidación</label>
+              <div class="segmented" role="group" aria-label="Tipo de liquidación">
+                <button type="button" class="active" data-mode="finanova">Pago Finanova</button>
+                <button type="button" data-mode="single">CARGA-2 · Individual</button>
+              </div>
+              <div class="helper" id="modeHelper">Agrupa varias invoices en un único Journal Entry.</div>
+            </div>
+            <div class="fields" style="margin-top:18px">
+              <div class="field">
+                <label for="journalName">Nombre del Journal</label>
+                <input id="journalName" value="Pago Finanova" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="journalDate">Fecha del asiento</label>
+                <input id="journalDate" type="date" required>
+              </div>
+              <div class="field full">
+                <label for="entityName">Name · Todas las líneas</label>
+                <input id="entityName" value="Finanova Factoring SPV1 LLC" autocomplete="off">
+                <div class="helper">Se asigna el mismo Name a cada línea del asiento.</div>
+              </div>
+            </div>
+
+            <div class="section-row">
+              <h3>Cargas e invoices</h3>
+              <span class="count" id="rowCount">0 registros</span>
+            </div>
+            <div class="table-wrap">
+              <table aria-label="Cargas e invoices">
+                <thead><tr><th style="width:52%">Invoice</th><th style="text-align:right">Valor (USD)</th><th></th></tr></thead>
+                <tbody id="invoiceRows"></tbody>
+              </table>
+            </div>
+            <button class="add-row" type="button" id="addRow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              Agregar invoice
+            </button>
+
+            <div class="import-box">
+              <div class="import-head">
+                <div class="import-title">Carga rápida desde Excel</div>
+                <button class="text-btn" type="button" id="exampleBtn">Ver ejemplo</button>
+              </div>
+              <textarea id="pasteArea" placeholder="Pega dos columnas: valor [tab] invoice&#10;99.00    3160595&#10;6.90     3146087"></textarea>
+              <div class="import-actions">
+                <div class="helper">Acepta columnas separadas por tabulador, coma o barra vertical. Valor e invoice pueden venir en cualquier orden.</div>
+                <button class="btn btn-secondary" type="button" id="importBtn">Importar filas</button>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:10px;margin-top:18px;flex-wrap:wrap">
+              <button class="btn btn-quiet" type="button" id="clearBtn">Limpiar formulario</button>
+              <button class="btn btn-secondary" type="button" id="previewBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                Previsualizar asiento
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel summary-panel">
+          <div class="panel-head">
+            <div><div class="panel-title">Resumen contable</div><div class="panel-desc">Validación previa a la exportación.</div></div>
+            <div class="step">02</div>
+          </div>
+          <div class="summary-body">
+            <h3 class="summary-title">Composición del asiento</h3>
+            <p class="summary-sub">Los importes se recalculan al editar las cargas.</p>
+            <div class="summary-line"><span>We Capital X8881 - 1 · Débito</span><strong id="sumWe">$0.00</strong></div>
+            <div class="summary-line"><span>Commissions &amp; fees · Débito</span><strong>$1.00</strong></div>
+            <div class="summary-line"><span>Receivable from funding partner · Crédito</span><strong id="sumReceivable">$0.00</strong></div>
+            <div class="summary-line total"><span>Total débitos</span><strong id="sumDebits">$0.00</strong></div>
+            <div class="summary-line"><span>Total créditos</span><strong id="sumCredits">$0.00</strong></div>
+            <div class="balance" id="balanceBox">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>
+              <div><strong id="balanceTitle">Partida doble cuadrada</strong><span id="balanceDetail">Diferencia: $0.00</span></div>
+            </div>
+            <div class="rule-note">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 11v5M12 8h.01"/></svg>
+              <div><strong style="display:block;color:#46536a;margin-bottom:3px">Reglas automáticas</strong>El débito de We Capital refleja el valor original. Commissions &amp; fees es $1.00. Ese dólar se suma al crédito de una sola invoice.</div>
+            </div>
+            <div class="summary-actions">
+              <button class="btn btn-primary full-btn" type="button" id="downloadBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></svg>
+                Generar y descargar CSV
+              </button>
+              <button class="btn btn-secondary full-btn" type="button" id="copyBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>
+                Copiar CSV al portapapeles
+              </button>
+            </div>
+            <div class="validation-list" id="validationList">
+              <div class="validation-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Importes calculados con precisión decimal.</div>
+              <div class="validation-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Name y Description asignados automáticamente.</div>
+              <div class="validation-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>CSV generado localmente, sin enviar datos.</div>
+            </div>
+          </div>
+        </aside>
+      </div>
+      <div class="footer"><span>Creador de liquidaciones · Herramienta interna de procesamiento</span><span>Verifica el archivo con la plantilla de importación de tu QuickBooks antes de usarlo.</span></div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>
+  <span id="toastText">Listo.</span>
+</div>
+<div class="modal-backdrop" id="previewModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <div class="modal-head"><div><h2 id="modalTitle">Previsualización del Journal Entry</h2><div class="panel-desc" id="previewMeta"></div></div><button class="icon-btn" id="closeModal" type="button" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+    <div class="preview-scroll" id="previewTable"></div>
+    <div class="modal-foot"><button class="btn btn-secondary" type="button" id="cancelPreview">Cerrar</button><button class="btn btn-primary" type="button" id="modalDownload">Descargar CSV</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const money = cents => '$' + (cents / 100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const usd = cents => (cents / 100).toFixed(2);
+  const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const iconTrash = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2m-11 0 1 14h12l1-14M10 10v6M14 10v6"/></svg>';
+  const state = { mode:'finanova', rows:[], extraIndex:0 };
+  let toastTimer;
+  const today = new Date();
+  $('journalDate').value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+  function showToast(message) {
+    $('toastText').textContent = message;
+    $('toast').classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>$('toast').classList.remove('show'),2800);
+  }
+  function parseAmount(value) {
+    let s = String(value ?? '').trim().replace(/[$\s]/g,'');
+    if (!s) return null;
+    if (/^-?\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(s)) s=s.replace(/,/g,'');
+    else if (/^-?\d+,\d{1,2}$/.test(s)) s=s.replace(',','.');
+    if (!/^\d+(\.\d{1,2})?$/.test(s)) return null;
+    const [whole,frac=''] = s.split('.');
+    const cents = Number(whole)*100 + Number((frac+'00').slice(0,2));
+    return Number.isSafeInteger(cents) ? cents : null;
+  }
+  function newRow(invoice='',amount='') { return {invoice:String(invoice),amount:String(amount)}; }
+  function addRow(invoice='',amount='') {
+    state.rows.push(newRow(invoice,amount));
+    renderRows();
+    updateSummary();
+  }
+  function renderRows() {
+    const body=$('invoiceRows');
+    body.innerHTML='';
+    state.rows.forEach((row,index)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td class="invoice"><input aria-label="Invoice ${index+1}" data-index="${index}" data-field="invoice" value="${escapeHtml(row.invoice)}" placeholder="Ej. 3160595" autocomplete="off"></td>
+      <td class="amount"><input aria-label="Valor de invoice ${index+1}" data-index="${index}" data-field="amount" value="${escapeHtml(row.amount)}" placeholder="0.00" inputmode="decimal"></td>
+      <td class="remove"><button class="icon-btn" type="button" data-remove="${index}" aria-label="Eliminar invoice ${index+1}">${iconTrash}</button></td>`;
+      body.appendChild(tr);
+    });
+    $('rowCount').textContent=`${state.rows.length} ${state.rows.length===1?'registro':'registros'}`;
+  }
+  function readRows() {
+    return state.rows.map((row,index)=>{
+      const amount=parseAmount(row.amount);
+      return {invoice:row.invoice.trim(),amount,index,valid:!!row.invoice.trim() && amount!==null && amount>0};
+    });
+  }
+  function compute() {
+    const rows=readRows();
+    const valid=rows.filter(r=>r.valid);
+    const original=valid.reduce((s,r)=>s+r.amount,0);
+    const creditTotal=original+100;
+    const debitTotal=original+100;
+    return {rows,valid,original,creditTotal,debitTotal,balanced:rows.length>0 && rows.every(r=>r.valid) && valid.length===rows.length};
+  }
+  function updateSummary() {
+    const c=compute();
+    $('metricInvoices').textContent=c.valid.length;
+    $('metricOriginal').textContent=money(c.original);
+    $('metricExtra').textContent=money(100);
+    $('metricTotal').textContent=money(c.debitTotal);
+    $('sumWe').textContent=money(c.original);
+    $('sumReceivable').textContent=money(c.creditTotal);
+    $('sumDebits').textContent=money(c.debitTotal);
+    $('sumCredits').textContent=money(c.creditTotal);
+    const ok=c.balanced;
+    $('balanceBox').classList.toggle('invalid',!ok);
+    $('balanceTitle').textContent=ok?'Partida doble cuadrada':'Pendiente de validación';
+    $('balanceDetail').textContent=ok?'Diferencia: $0.00':(c.rows.length?'Revisa invoices e importes.':'Agrega al menos una invoice.');
+    const list=$('validationList');
+    list.innerHTML='';
+    const checks=[
+      [c.rows.length>0,'Hay al menos una invoice registrada.'],
+      [c.rows.length>0 && c.rows.every(r=>r.invoice),'Todas las invoices tienen identificador.'],
+      [c.rows.length>0 && c.rows.every(r=>r.amount!==null && r.amount>0),'Todos los importes son positivos y tienen máximo dos decimales.'],
+      [!!$('journalName').value.trim() && !!$('journalDate').value && !!$('entityName').value.trim(),'Nombre, fecha y Name están completos.']
+    ];
+    checks.forEach(([pass,label])=>{
+      const div=document.createElement('div');
+      div.className='validation-item'+(pass?'':' warn');
+      div.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${pass?'<path d="m5 12 4 4L19 6"/>':'<circle cx="12" cy="12" r="10"/><path d="M12 7v6M12 16h.01"/>'}</svg><span>${label}</span>`;
+      list.appendChild(div);
+    });
+  }
+  function setMode(mode) {
+    state.mode=mode;
+    document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+    if(mode==='finanova'){
+      $('journalName').value='Pago Finanova';
+      $('modeHelper').textContent='Agrupa varias invoices en un único Journal Entry.';
+    } else {
+      $('journalName').value='CARGA-2';
+      $('modeHelper').textContent='Procesa una sola carga. Introduce únicamente una invoice.';
+    }
+    updateSummary();
+  }
+  function validate() {
+    const c=compute();
+    const errors=[];
+    if(!c.rows.length) errors.push('Agrega al menos una invoice.');
+    c.rows.forEach((r,i)=>{
+      if(!r.invoice) errors.push(`Falta la invoice en la fila ${i+1}.`);
+      if(r.amount===null || r.amount<=0) errors.push(`El importe de la fila ${i+1} debe ser positivo y tener máximo dos decimales.`);
+    });
+    if(state.mode==='single' && c.rows.length!==1) errors.push('CARGA-2 requiere exactamente una invoice.');
+    if(!$('journalName').value.trim()) errors.push('Ingresa el nombre del Journal.');
+    if(!$('journalDate').value) errors.push('Selecciona la fecha del asiento.');
+    if(!$('entityName').value.trim()) errors.push('Ingresa el Name que se asignará a todas las líneas.');
+    if(errors.length) { showToast(errors[0]); return null; }
+    return c;
+  }
+  function dateUS(iso) {
+    const [y,m,d]=iso.split('-');
+    return `${Number(m)}/${Number(d)}/${y}`;
+  }
+  function csvEscape(value) {
+    const s=String(value??'');
+    return /[",\r\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+  }
+  function buildData() {
+    const c=validate();
+    if(!c) return null;
+    const date=dateUS($('journalDate').value);
+    const journal=$('journalName').value.trim();
+    const name=$('entityName').value.trim();
+    const prefix='Pago finanova';
+    const lines=[
+      ['Journal No.','Journal Date','Account Name','Description','Debits','Credits','Name'],
+      [journal,date,'We Capital X8881 - 1',`${prefix} (${$('journalDate').value})`,usd(c.original),'',name],
+      [journal,date,'Commissions & fees',`${prefix} (${$('journalDate').value})`,'1.00','',name]
+    ];
+    c.valid.forEach((r,i)=>{
+      const amount=r.amount+(i===state.extraIndex?100:0);
+      lines.push([journal,date,'Receivable from funding partner',`${prefix} (${r.invoice})`,'',usd(amount),name]);
+    });
+    return {lines,c};
+  }
+  function csvText(data) { return '\uFEFF'+data.lines.map(row=>row.map(csvEscape).join(',')).join('\r\n'); }
+  function download() {
+    const data=buildData();
+    if(!data) return;
+    const blob=new Blob([csvText(data)],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const date=$('journalDate').value;
+    const slug=$('journalName').value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_|_$/g,'')||'Liquidacion';
+    a.href=url;a.download=`${slug}_${date}.csv`;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    showToast('CSV generado. Verifica el archivo antes de importarlo en QuickBooks.');
+  }
+  function renderPreview() {
+    const data=buildData();
+    if(!data) return;
+    $('previewMeta').textContent=`${data.c.valid.length} invoices · ${$('journalName').value} · ${dateUS($('journalDate').value)}`;
+    const table=document.createElement('table');
+    const thead=document.createElement('thead');
+    thead.innerHTML='<tr>'+data.lines[0].map(v=>`<th>${escapeHtml(v)}</th>`).join('')+'</tr>';
+    const tbody=document.createElement('tbody');
+    data.lines.slice(1).forEach(row=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=row.map(v=>`<td>${escapeHtml(v)}</td>`).join('');
+      tbody.appendChild(tr);
+    });
+    table.append(thead,tbody);
+    $('previewTable').replaceChildren(table);
+    $('previewModal').classList.add('show');
+  }
+  function importPaste() {
+    const raw=$('pasteArea').value.trim();
+    if(!raw){showToast('Pega primero las filas que quieres importar.');return;}
+    const lines=raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    const parsed=[];
+    for(const line of lines){
+      const parts=line.includes('\t')?line.split('\t'):line.includes('|')?line.split('|'):line.split(',');
+      if(parts.length<2) continue;
+      let a=parts[0].trim(),b=parts.slice(1).join(' ').trim();
+      if(!a || !b) continue;
+      const first=parseAmount(a),second=parseAmount(b);
+      if(first!==null && second===null) parsed.push(newRow(b,usd(first)));
+      else if(second!==null && first===null) parsed.push(newRow(a,usd(second)));
+      else if(first===null && second===null && /invoice|amount|valor|carga/i.test(line)) continue;
+      else if(first!==null && second!==null) {
+        // Ambiguous numeric pair: by convention pasted lists are amount first, invoice second.
+        parsed.push(newRow(b,usd(first)));
+      }
+    }
+    if(!parsed.length){showToast('No pude reconocer filas. Usa valor e invoice en dos columnas.');return;}
+    if(state.mode==='single' && parsed.length>1){showToast('CARGA-2 admite una sola invoice. Cambia a Pago Finanova para importar varias.');return;}
+    state.rows=parsed;
+    state.extraIndex=0;
+    renderRows();updateSummary();
+    $('pasteArea').value='';
+    showToast(`${parsed.length} ${parsed.length===1?'invoice importada':'invoices importadas'}.`);
+  }
+  $('invoiceRows').addEventListener('input',e=>{
+    const input=e.target.closest('input[data-index]');
+    if(!input)return;
+    const index=Number(input.dataset.index);
+    state.rows[index][input.dataset.field]=input.value;
+    updateSummary();
+  });
+  $('invoiceRows').addEventListener('click',e=>{
+    const btn=e.target.closest('[data-remove]');
+    if(!btn)return;
+    const index=Number(btn.dataset.remove);
+    state.rows.splice(index,1);
+    if(state.extraIndex>=state.rows.length)state.extraIndex=0;
+    renderRows();updateSummary();
+  });
+  $('addRow').addEventListener('click',()=>{
+    if(state.mode==='single' && state.rows.length>=1){showToast('CARGA-2 admite una sola invoice.');return;}
+    addRow();
+  });
+  document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{
+    if(b.dataset.mode==='single' && state.rows.length>1){showToast('Para usar CARGA-2, deja solo una invoice.');return;}
+    setMode(b.dataset.mode);
+  }));
+  ['journalName','journalDate','entityName'].forEach(id=>$(id).addEventListener('input',updateSummary));
+  $('importBtn').addEventListener('click',importPaste);
+  $('exampleBtn').addEventListener('click',()=>{
+    $('pasteArea').value='99.00\t3160595\n6.90\t3146087\n8.40\t3160729\n25.50\t3161402\n10.05\tLD53253\n17.00\t3158466';
+    $('pasteArea').focus();
+  });
+  $('clearBtn').addEventListener('click',()=>{
+    state.rows=[];state.extraIndex=0;$('pasteArea').value='';
+    renderRows();updateSummary();showToast('Formulario limpio.');
+  });
+  $('previewBtn').addEventListener('click',renderPreview);
+  $('downloadBtn').addEventListener('click',download);
+  $('copyBtn').addEventListener('click',async()=>{
+    const data=buildData();if(!data)return;
+    try{await navigator.clipboard.writeText(csvText(data));showToast('CSV copiado al portapapeles.');}
+    catch(e){showToast('El navegador bloqueó el portapapeles. Usa la descarga CSV.');}
+  });
+  const closeModal=()=> $('previewModal').classList.remove('show');
+  $('closeModal').addEventListener('click',closeModal);
+  $('cancelPreview').addEventListener('click',closeModal);
+  $('previewModal').addEventListener('click',e=>{if(e.target===$('previewModal'))closeModal();});
+  $('modalDownload').addEventListener('click',()=>{closeModal();download();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+  // Start with a blank row and today's date.
+  state.rows=[newRow()];
+  renderRows();
+  updateSummary();
+})();
+</script>
+</body>
+</html>
